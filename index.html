@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bandwidth Calculator</title>
+    <style>
+        /* ============================================================
+           STYLES — Fluent UI / Microsoft-inspired design
+           Uses Segoe UI, card layout, blue accent (#0078D4)
+           ============================================================ */
+
+        /* Reset and base font */
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", sans-serif;
+            background-color: #f3f2f1; /* Fluent neutral background */
+            color: #323130;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        /* Main card container */
+        .card {
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.14);
+            padding: 32px 36px;
+            width: 100%;
+            max-width: 520px;
+        }
+
+        /* Page title */
+        h1 {
+            font-size: 24px;
+            font-weight: 600;
+            color: #0078D4; /* Microsoft blue */
+            margin-bottom: 4px;
+        }
+
+        /* Subtitle / helper text */
+        .subtitle {
+            font-size: 13px;
+            color: #605e5c;
+            margin-bottom: 28px;
+        }
+
+        /* Each input row: label, then input+dropdown side by side */
+        .field-group {
+            margin-bottom: 20px;
+            transition: background-color 0.2s ease;
+            padding: 12px 14px;
+            border-radius: 6px;
+        }
+
+        /* Visual highlight for the auto-calculated field */
+        .field-group.calculated {
+            background-color: #eff6fc; /* light blue tint */
+        }
+
+        .field-group label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: #323130;
+        }
+
+        /* Small badge shown next to the calculated field label */
+        .calc-badge {
+            display: none; /* hidden by default */
+            font-size: 11px;
+            font-weight: 400;
+            color: #0078D4;
+            margin-left: 8px;
+            vertical-align: middle;
+        }
+
+        .field-group.calculated .calc-badge {
+            display: inline; /* show only on the calculated field */
+        }
+
+        /* Row that holds the number input and the unit dropdown */
+        .input-row {
+            display: flex;
+            gap: 8px;
+        }
+
+        /* Shared styles for inputs and selects */
+        .input-row input,
+        .input-row select {
+            font-family: inherit;
+            font-size: 14px;
+            padding: 8px 12px;
+            border: 1px solid #c8c6c4; /* Fluent neutral border */
+            border-radius: 4px;
+            outline: none;
+            transition: border-color 0.15s ease;
+            background: #fff;
+        }
+
+        /* The number input takes most of the space */
+        .input-row input {
+            flex: 1;
+            min-width: 0; /* prevents flex overflow */
+        }
+
+        /* The unit dropdown has a fixed width */
+        .input-row select {
+            width: 130px;
+            cursor: pointer;
+        }
+
+        /* Focus ring — Microsoft blue */
+        .input-row input:focus,
+        .input-row select:focus {
+            border-color: #0078D4;
+            box-shadow: 0 0 0 1px #0078D4;
+        }
+
+        /* Efficiency field — input with a "%" suffix inside the box */
+        .efficiency-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .efficiency-row input {
+            font-family: inherit;
+            font-size: 14px;
+            padding: 8px 12px;
+            border: 1px solid #c8c6c4;
+            border-radius: 4px;
+            outline: none;
+            transition: border-color 0.15s ease;
+            background: #fff;
+            width: 100px;
+        }
+
+        .efficiency-row input:focus {
+            border-color: #0078D4;
+            box-shadow: 0 0 0 1px #0078D4;
+        }
+
+        .efficiency-row .unit-label {
+            font-size: 14px;
+            color: #605e5c;
+        }
+
+        /* Footer info text */
+        .info {
+            margin-top: 16px;
+            font-size: 12px;
+            color: #a19f9d;
+            text-align: center;
+        }
+
+        /* Responsive: stack on very small screens */
+        @media (max-width: 400px) {
+            .card {
+                padding: 20px 16px;
+            }
+            .input-row {
+                flex-direction: column;
+            }
+            .input-row select {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ============================================================
+         HTML STRUCTURE
+         Three field groups: Size, Bandwidth, Time
+         Each has a numeric input and a unit dropdown
+         ============================================================ -->
+
+    <div class="card">
+        <h1>Bandwidth Calculator</h1>
+        <p class="subtitle">Enter any two values to calculate the third.</p>
+
+        <!-- SIZE field -->
+        <div class="field-group" id="group-size">
+            <label for="size">
+                Size
+                <span class="calc-badge">(calculated)</span>
+            </label>
+            <div class="input-row">
+                <input type="number" id="size" min="0" step="any" value="1" placeholder="Enter size">
+                <select id="size-unit">
+                    <option value="MB" selected>MB</option>
+                    <option value="GB">GB</option>
+                    <option value="TB">TB</option>
+                    <option value="PB">PB</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- BANDWIDTH field -->
+        <div class="field-group" id="group-bandwidth">
+            <label for="bandwidth">
+                Bandwidth
+                <span class="calc-badge">(calculated)</span>
+            </label>
+            <div class="input-row">
+                <input type="number" id="bandwidth" min="0" step="any" value="1" placeholder="Enter bandwidth">
+                <select id="bandwidth-unit">
+                    <option value="Mbps" selected>Mbps</option>
+                    <option value="Gbps">Gbps</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- EFFICIENCY field — percentage of bandwidth actually used for payload -->
+        <div class="field-group" id="group-efficiency">
+            <label for="efficiency">Efficiency</label>
+            <div class="efficiency-row">
+                <input type="number" id="efficiency" min="0" max="100" step="any" value="80" placeholder="0-100">
+                <span class="unit-label">%</span>
+            </div>
+        </div>
+
+        <!-- TIME field -->
+        <div class="field-group" id="group-time">
+            <label for="time">
+                Time
+                <span class="calc-badge">(calculated)</span>
+            </label>
+            <div class="input-row">
+                <input type="number" id="time" min="0" step="any" placeholder="Enter time">
+                <select id="time-unit">
+                    <option value="Seconds">Seconds</option>
+                    <option value="Minutes">Minutes</option>
+                    <option value="Hours" selected>Hours</option>
+                    <option value="Days">Days</option>
+                </select>
+            </div>
+        </div>
+
+        <p class="info">Size uses binary units (1 GB = 1024 MB). Bandwidth uses decimal units (1 Gbps = 1000 Mbps).</p>
+    </div>
+
+    <script>
+        /* ============================================================
+           JAVASCRIPT — Calculation logic and event wiring
+           ============================================================ */
+
+        // ---- DOM references ----
+        const sizeInput      = document.getElementById("size");
+        const sizeUnit       = document.getElementById("size-unit");
+        const bwInput        = document.getElementById("bandwidth");
+        const bwUnit         = document.getElementById("bandwidth-unit");
+        const effInput       = document.getElementById("efficiency");
+        const timeInput      = document.getElementById("time");
+        const timeUnit       = document.getElementById("time-unit");
+
+        // Field group wrappers (used for the "calculated" highlight)
+        const groupSize      = document.getElementById("group-size");
+        const groupBandwidth = document.getElementById("group-bandwidth");
+        const groupTime      = document.getElementById("group-time");
+
+        // ---- Unit conversion tables ----
+        // All sizes normalised to Megabytes (MB)
+        // Binary: 1 GB = 1024 MB, 1 TB = 1024² MB, 1 PB = 1024³ MB
+        const sizeToMB = {
+            "MB": 1,
+            "GB": 1024,
+            "TB": 1024 * 1024,          // 1,048,576
+            "PB": 1024 * 1024 * 1024    // 1,073,741,824
+        };
+
+        // All bandwidths normalised to Megabits per second (Mbps)
+        // Decimal: 1 Gbps = 1000 Mbps
+        const bwToMbps = {
+            "Mbps": 1,
+            "Gbps": 1000
+        };
+
+        // All times normalised to Seconds
+        const timeToSeconds = {
+            "Seconds": 1,
+            "Minutes": 60,
+            "Hours":   3600,
+            "Days":    86400
+        };
+
+        // ---- "Last two edited" tracker ----
+        // This array holds the names of the two most-recently-edited fields.
+        // The field NOT in this array is the one that gets auto-calculated.
+        // Initial state: size and bandwidth are "set", so time is calculated.
+        let lastEdited = ["size", "bandwidth"];
+
+        /**
+         * Called whenever the user changes a field's value or unit.
+         * Pushes the field name to the front of lastEdited,
+         * keeping only the two most recent entries.
+         *
+         * @param {string} fieldName - "size", "bandwidth", or "time"
+         */
+        function markEdited(fieldName) {
+            // Remove the field if it's already in the list (avoid duplicates)
+            lastEdited = lastEdited.filter(f => f !== fieldName);
+
+            // Add it to the front (most recent)
+            lastEdited.unshift(fieldName);
+
+            // Keep only the two most recent
+            lastEdited = lastEdited.slice(0, 2);
+        }
+
+        /**
+         * Determines which field should be auto-calculated.
+         * It's whichever field is NOT in the lastEdited array.
+         *
+         * @returns {string} "size", "bandwidth", or "time"
+         */
+        function getCalculatedField() {
+            const allFields = ["size", "bandwidth", "time"];
+            return allFields.find(f => !lastEdited.includes(f));
+        }
+
+        /**
+         * Main calculation function.
+         * Reads the two "user-set" fields, computes the third,
+         * and writes the result back into the DOM.
+         */
+        function calculate() {
+            const target = getCalculatedField();
+
+            // Read raw values from inputs (may be empty or NaN)
+            const sizeVal = parseFloat(sizeInput.value);
+            const bwVal   = parseFloat(bwInput.value);
+            const timeVal = parseFloat(timeInput.value);
+
+            // Read efficiency (percentage 0-100, default 80)
+            // Clamp to 0-100 range; treat invalid as 100% (no overhead)
+            let effPercent = parseFloat(effInput.value);
+            if (!isFinite(effPercent) || effPercent <= 0) effPercent = 0;
+            if (effPercent > 100) effPercent = 100;
+            const effFactor = effPercent / 100; // 0.0 – 1.0
+
+            // Convert the two known fields to base units
+            // Size → MB,  Bandwidth → Mbps,  Time → Seconds
+            const sizeMB    = sizeVal * sizeToMB[sizeUnit.value];
+            const bwMbps    = bwVal   * bwToMbps[bwUnit.value];
+            const timeSec   = timeVal * timeToSeconds[timeUnit.value];
+
+            // Effective bandwidth = raw bandwidth × efficiency
+            // e.g. 1 Gbps at 80% efficiency → 800 Mbps usable
+            const effectiveBw = bwMbps * effFactor;
+
+            // The core relationship (using effective bandwidth):
+            //   Time(seconds) = (Size_MB × 8) / effectiveBw_Mbps
+            //
+            // Because 1 Byte = 8 bits, to transfer Size_MB megabytes
+            // at effectiveBw_Mbps megabits-per-second, we multiply by 8.
+
+            let result;
+
+            switch (target) {
+                case "time":
+                    // Calculate time from size and effective bandwidth
+                    // Guard: effective bandwidth must be > 0 to avoid division by zero
+                    if (!isFinite(effectiveBw) || effectiveBw <= 0 || !isFinite(sizeMB)) {
+                        timeInput.value = "";
+                        break;
+                    }
+                    // Result in seconds, then convert to the selected time unit
+                    result = (sizeMB * 8) / effectiveBw;
+                    timeInput.value = formatNumber(result / timeToSeconds[timeUnit.value]);
+                    break;
+
+                case "size":
+                    // Calculate size from effective bandwidth and time
+                    // Guard: both effective bandwidth and time must be valid
+                    if (!isFinite(effectiveBw) || !isFinite(timeSec) || effectiveBw < 0 || timeSec < 0) {
+                        sizeInput.value = "";
+                        break;
+                    }
+                    // Result in MB, then convert to the selected size unit
+                    result = (effectiveBw * timeSec) / 8;
+                    sizeInput.value = formatNumber(result / sizeToMB[sizeUnit.value]);
+                    break;
+
+                case "bandwidth":
+                    // Calculate raw bandwidth from size and time
+                    // Guard: time and efficiency must be > 0 to avoid division by zero
+                    if (!isFinite(sizeMB) || !isFinite(timeSec) || timeSec <= 0 || effFactor <= 0) {
+                        bwInput.value = "";
+                        break;
+                    }
+                    // First get the effective Mbps needed, then divide by efficiency
+                    // to get the raw bandwidth the link must provide
+                    result = (sizeMB * 8) / (timeSec * effFactor);
+                    bwInput.value = formatNumber(result / bwToMbps[bwUnit.value]);
+                    break;
+            }
+
+            // Update the visual highlight to show which field is calculated
+            updateHighlight(target);
+        }
+
+        /**
+         * Formats a number for display:
+         * - Up to 4 decimal places
+         * - Strips trailing zeros (e.g. 2.5000 → 2.5)
+         * - Returns empty string for invalid numbers
+         *
+         * @param {number} num - The number to format
+         * @returns {string} Formatted number string
+         */
+        function formatNumber(num) {
+            if (!isFinite(num) || isNaN(num)) return "";
+
+            // toFixed(4) gives us max 4 decimal places,
+            // parseFloat strips unnecessary trailing zeros
+            return parseFloat(num.toFixed(4)).toString();
+        }
+
+        /**
+         * Adds the "calculated" CSS class to the target field group
+         * and removes it from the other two. This provides a subtle
+         * blue background on the auto-computed field.
+         *
+         * @param {string} target - "size", "bandwidth", or "time"
+         */
+        function updateHighlight(target) {
+            // Map field names to their wrapper elements
+            const groups = {
+                "size":      groupSize,
+                "bandwidth": groupBandwidth,
+                "time":      groupTime
+            };
+
+            // Remove highlight from all, then add to the calculated one
+            Object.keys(groups).forEach(key => {
+                groups[key].classList.toggle("calculated", key === target);
+            });
+        }
+
+        // ---- Event listeners ----
+        // When the user types in a numeric field, mark it as edited and recalculate.
+        // When the user changes a unit dropdown, mark that field as edited and recalculate.
+        // We use "input" for typing (fires on every keystroke) and "change" for dropdowns.
+
+        sizeInput.addEventListener("input", () => {
+            markEdited("size");
+            calculate();
+        });
+
+        sizeUnit.addEventListener("change", () => {
+            markEdited("size");
+            calculate();
+        });
+
+        bwInput.addEventListener("input", () => {
+            markEdited("bandwidth");
+            calculate();
+        });
+
+        bwUnit.addEventListener("change", () => {
+            markEdited("bandwidth");
+            calculate();
+        });
+
+        timeInput.addEventListener("input", () => {
+            markEdited("time");
+            calculate();
+        });
+
+        timeUnit.addEventListener("change", () => {
+            markEdited("time");
+            calculate();
+        });
+
+        // Efficiency changes always trigger a recalculation
+        // (efficiency is not part of the "last two edited" tracking —
+        //  it's a modifier on bandwidth, not a calculable field)
+        effInput.addEventListener("input", () => {
+            calculate();
+        });
+
+        // ---- Initial calculation on page load ----
+        // With defaults (Size=1 MB, Bandwidth=1 Mbps), calculate Time.
+        // This runs as soon as the DOM is ready — no hardcoded values.
+        document.addEventListener("DOMContentLoaded", () => {
+            calculate();
+        });
+    </script>
+
+</body>
+</html>
